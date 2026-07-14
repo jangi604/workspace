@@ -19,7 +19,6 @@ import {
   onSnapshot,
   Timestamp,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -29,7 +28,8 @@ import {
   type User,
 } from 'firebase/auth';
 import { useEffect, useState } from 'react';
-import { db, auth, storage } from './firebase';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { db, auth } from './firebase';
 import {
   COLLECTIONS,
   SETTINGS_DOC_ID,
@@ -167,13 +167,21 @@ export function useMyPaymentRequests(customerId: string | undefined) {
   });
 }
 
-export async function uploadPaymentScreenshot(uri: string, customerId: string): Promise<string> {
-  const response = await fetch(uri);
-  const blob = await response.blob();
-  const path = `payment-screenshots/${customerId}/${Date.now()}.jpg`;
-  const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, blob);
-  return getDownloadURL(storageRef);
+// Firebase Storage requires the project to be on the paid Blaze plan, so
+// payment screenshots are instead resized/compressed client-side and stored
+// inline in Firestore as a base64 data URI. Resizing to a max width of 900px
+// at 50% JPEG quality keeps the resulting string comfortably under
+// Firestore's 1MB per-document limit while remaining legible for review.
+export async function uploadPaymentScreenshot(uri: string): Promise<string> {
+  const result = await ImageManipulator.manipulateAsync(
+    uri,
+    [{ resize: { width: 900 } }],
+    { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+  );
+  if (!result.base64) {
+    throw new Error('Failed to process the payment screenshot. Please try a different image.');
+  }
+  return `data:image/jpeg;base64,${result.base64}`;
 }
 
 export function useSubmitPaymentRequest() {
@@ -187,7 +195,7 @@ export function useSubmitPaymentRequest() {
       method: PaymentMethod;
       screenshotUri: string;
     }) => {
-      const screenshotUrl = await uploadPaymentScreenshot(input.screenshotUri, input.customerId);
+      const screenshotBase64 = await uploadPaymentScreenshot(input.screenshotUri);
       await addDoc(collection(db, COLLECTIONS.paymentRequests), {
         customerId: input.customerId,
         customerName: input.customerName,
@@ -196,7 +204,7 @@ export function useSubmitPaymentRequest() {
         packageName: input.pkg.name,
         amount: input.pkg.price,
         method: input.method,
-        screenshotUrl,
+        screenshotBase64,
         status: 'pending',
         adminNote: null,
         createdAt: serverTimestamp(),

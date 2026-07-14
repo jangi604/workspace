@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
-import { Eye, Check, X, Clock, ExternalLink } from "lucide-react";
+import { Eye, Check, X, Clock, Download } from "lucide-react";
 
 export default function Payments() {
   const { data: requests = [], isLoading } = usePaymentRequests();
@@ -18,6 +18,7 @@ export default function Payments() {
   const [decision, setDecision] = useState<'approved' | 'rejected' | null>(null);
   const [adminNote, setAdminNote] = useState("");
   const [filter, setFilter] = useState<'all' | 'pending' | 'resolved'>('pending');
+  const [previewReq, setPreviewReq] = useState<PaymentRequest | null>(null);
 
   const handleOpenDialog = (req: PaymentRequest, action: 'approved' | 'rejected') => {
     setSelectedReq(req);
@@ -124,10 +125,8 @@ export default function Payments() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={req.screenshotUrl} target="_blank" rel="noopener noreferrer" className="gap-2">
-                          <Eye className="h-4 w-4" /> Receipt
-                        </a>
+                      <Button variant="outline" size="sm" className="gap-2" onClick={() => setPreviewReq(req)}>
+                        <Eye className="h-4 w-4" /> Receipt
                       </Button>
                       {req.status === 'pending' && (
                         <>
@@ -203,6 +202,31 @@ export default function Payments() {
               {decideMutation.isPending ? "Processing..." : `Confirm ${decision === 'approved' ? 'Approval' : 'Rejection'}`}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!previewReq} onOpenChange={(open) => !open && setPreviewReq(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Payment Proof</DialogTitle>
+            <DialogDescription>
+              {previewReq && `${previewReq.customerName} · ${previewReq.packageName} · ${formatCurrency(previewReq.amount)}`}
+            </DialogDescription>
+          </DialogHeader>
+          {previewReq && (
+            <div className="space-y-3">
+              <img
+                src={previewReq.screenshotBase64}
+                alt="Payment screenshot"
+                className="w-full rounded-md border max-h-[70vh] object-contain bg-muted"
+              />
+              <Button variant="outline" size="sm" asChild className="gap-2">
+                <a href={previewReq.screenshotBase64} download={`payment-${previewReq.id}.jpg`}>
+                  <Download className="h-4 w-4" /> Download
+                </a>
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

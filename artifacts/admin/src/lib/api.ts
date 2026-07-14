@@ -23,7 +23,6 @@ import {
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -32,7 +31,7 @@ import {
   type User,
 } from 'firebase/auth';
 import { useEffect, useState } from 'react';
-import { db, auth, storage } from './firebase';
+import { db, auth } from './firebase';
 import {
   COLLECTIONS,
   SETTINGS_DOC_ID,
@@ -326,15 +325,6 @@ export function useUpdateAppSettings() {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['app-settings'] }),
   });
-}
-
-// ---------- storage (payment screenshots, shared type re-export for convenience) ----------
-
-export async function uploadPaymentScreenshot(file: File, customerId: string): Promise<string> {
-  const path = `payment-screenshots/${customerId}/${Date.now()}-${file.name}`;
-  const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
-  return getDownloadURL(storageRef);
 }
 
 export type { UserProfile, InternetPackage, PaymentRequest, AppNotification, AppSettings };

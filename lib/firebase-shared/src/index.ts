@@ -57,7 +57,15 @@ export interface PaymentRequest {
   packageName: string;
   amount: number;
   method: PaymentMethod;
-  screenshotUrl: string;
+  /**
+   * Payment proof screenshot stored inline as a compressed base64 data URI
+   * (e.g. "data:image/jpeg;base64,...") -- not a Storage download URL. This
+   * avoids requiring the Firebase project to be on the paid Blaze plan
+   * (Cloud Storage buckets require Blaze); the image lives directly in the
+   * Firestore document instead, resized/compressed client-side to stay well
+   * under Firestore's 1MB document size limit.
+   */
+  screenshotBase64: string;
   status: PaymentRequestStatus;
   adminNote: string | null;
   createdAt: string;
