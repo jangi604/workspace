@@ -1,0 +1,62 @@
+rules_version = '2';
+
+// Firestore security rules for Jangi Fiber.
+// Authorization model: a user document's `role` field (admin | customer)
+// is the single source of truth. Only the Admin SDK (server-side seed
+// script, using the service account) can create a user with role "admin";
+// clients can never self-promote because `role` is immutable on client
+// writes to their own document.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid) && request.resource.data.role == 'customer';
+      allow update: if isAdmin() ||
+        (isOwner(uid)
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.status == resource.data.status
+          && request.resource.data.activePackageId == resource.data.activePackageId
+          && request.resource.data.activePackageName == resource.data.activePackageName
+          && request.resource.data.packageExpiresAt == resource.data.packageExpiresAt);
+      allow delete: if isAdmin();
+    }
+
+    match /packages/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /paymentRequests/{id} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.customerId == request.auth.uid);
+      allow create: if isSignedIn()
+        && request.resource.data.customerId == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /notifications/{id} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

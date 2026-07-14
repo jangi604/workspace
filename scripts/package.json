@@ -5,7 +5,14 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
+    "enable-firebase-auth": "tsx ./src/enable-firebase-auth.ts",
+    "seed-firebase": "tsx ./src/seed-firebase.ts",
+    "deploy-firebase-rules": "tsx ./src/deploy-firebase-rules.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.2",
+    "google-auth-library": "^9.15.0"
   },
   "devDependencies": {
     "@types/node": "catalog:",
