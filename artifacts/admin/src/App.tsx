@@ -61,6 +61,10 @@ function App() {
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
         <Switch>
           <Route path="/login" component={Login} />
+          {/* wouter's ":param*" pattern requires at least one path segment and
+              never matches the bare root "/" -- without this explicit route,
+              visiting "/" matches nothing and the Switch renders blank. */}
+          <Route path="/" component={ProtectedRoutes} />
           <Route path="/:rest*" component={ProtectedRoutes} />
         </Switch>
       </WouterRouter>
