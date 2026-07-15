@@ -1,8 +1,8 @@
 name: Build Android APK
 on:
   push:
-    branches: [ main, master ]
-  workflow_dispatch:
+    branches:
+      - main
 
 jobs:
   build:
@@ -16,17 +16,13 @@ jobs:
         with:
           node-version: 18
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          version: 8
 
-      - name: Setup Expo
-        uses: expo/expo-github-action@v8
-        with:
-          expo-version: latest
-          eas-version: latest
+      - name: Setup EAS CLI
+        run: pnpm add -g eas-cli
 
       - name: Install dependencies
         run: |
@@ -40,6 +36,7 @@ jobs:
           pnpm exec eas build --platform android --local --profile preview --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EAS_NO_YARN: 1
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
