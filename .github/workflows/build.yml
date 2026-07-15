@@ -30,13 +30,11 @@ jobs:
           pnpm install --no-frozen-lockfile
 
       - name: Build APK locally via EAS
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EAS_NO_YARN: 1
         run: |
           cd artifacts/mobile
-          npx expo export
           eas build --platform android --local --profile preview --non-interactive
+        env:
+          EAS_NO_YARN: 1
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
